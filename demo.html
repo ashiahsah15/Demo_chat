@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Secure Chat — Enter Name & Password</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#2b6cb0;--muted:#9aa4b2;--glass: rgba(255,255,255,0.04)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;color:#e6eef6;background:linear-gradient(180deg,#071026 0%, #071a2a 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .container{width:960px;max-width:96%;height:640px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;box-shadow:0 10px 30px rgba(2,6,23,0.6);overflow:hidden;display:grid;grid-template-columns:320px 1fr}
+    /* sidebar */
+    .sidebar{background:linear-gradient(180deg,var(--card), rgba(11,18,32,0.9));padding:18px;display:flex;flex-direction:column;gap:14px}
+    .logo{font-weight:700;font-size:20px;color:var(--accent);letter-spacing:0.4px}
+    .meta{color:var(--muted);font-size:13px}
+    .controls{margin-top:auto;display:flex;gap:8px}
+    button{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:#e6eef6;padding:10px 12px;border-radius:10px;cursor:pointer}
+    button.secondary{background:transparent;border:1px dashed rgba(255,255,255,0.03);color:var(--muted)}
+    /* chat area */
+    .chat-area{display:flex;flex-direction:column;height:100%}
+    .chat-header{padding:18px;border-bottom:1px solid rgba(255,255,255,0.02);display:flex;align-items:center;gap:12px}
+    .avatar{width:46px;height:46px;background:linear-gradient(135deg,#1e90ff,#60a5fa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#00112a}
+    .title{font-size:16px;font-weight:600}
+    .subtitle{color:var(--muted);font-size:13px}
+    .messages{flex:1;padding:18px;overflow:auto;background:linear-gradient(180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.01));display:flex;flex-direction:column;gap:10px}
+    .msg{max-width:70%;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.02);color:#e6eef6}
+    .msg.you{align-self:flex-end;background:linear-gradient(135deg,#155e75 0%, #2b6cb0 100%);color:white}
+    .msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .composer{padding:14px;border-top:1px solid rgba(255,255,255,0.02);display:flex;gap:8px}
+    .composer input[type=text]{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef6}
+    .composer button.send{padding:12px 16px;border-radius:10px;background:linear-gradient(90deg,#0ea5b7,#3b82f6);border:none;color:white;font-weight:600;cursor:pointer}
+
+    /* lock overlay */
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(2,6,23,0.65), rgba(2,6,23,0.85));backdrop-filter: blur(6px)}
+    .lockbox{width:420px;max-width:95%;background:linear-gradient(180deg,#071426,#071126);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 18px 40px rgba(2,6,23,0.6)}
+    .lockbox h2{margin:0 0 10px 0;color:#cfe7ff}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    .field input{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#e6eef6}
+    .note{font-size:13px;color:var(--muted)}
+
+    /* small screens */
+    @media (max-width:720px){.container{height:88vh;grid-template-columns:1fr}.sidebar{display:none}}
+  </style>
+</head>
+<body>
+
+  <div class="container" id="app">
+    <aside class="sidebar">
+      <div class="logo">SecureChat</div>
+      <div class="meta">A simple client‑side chat page that works from GitHub Pages. No server required.</div>
+
+      <div style="margin-top:12px">
+        <strong id="sidebar-name">Hello</strong>
+        <div class="note" id="sidebar-sub">Please unlock to start chatting</div>
+      </div>
+
+      <div class="controls">
+        <button id="logoutBtn" class="secondary">Logout</button>
+        <button id="clearBtn">Clear Chat</button>
+      </div>
+
+      <div style="font-size:12px;color:var(--muted);margin-top:14px">Tip: The site stores messages locally in your browser. To share chat across devices you'd need a backend.</div>
+    </aside>
+
+    <section class="chat-area">
+      <div class="chat-header">
+        <div class="avatar">SC</div>
+        <div>
+          <div class="title">SecureChat</div>
+          <div class="subtitle">A lightweight client-side chat</div>
+        </div>
+      </div>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="composer">
+        <input id="msgInput" type="text" placeholder="Write your message..." autocomplete="off" />
+        <button class="send" id="sendBtn">Send</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Lock / Name overlay -->
+  <div class="overlay" id="overlay">
+    <div class="lockbox">
+      <h2>Welcome — Please authenticate</h2>
+      <div class="field">
+        <label class="note">Your name</label>
+        <input id="nameInput" type="text" placeholder="Type your name" />
+      </div>
+      <div class="field">
+        <label class="note">Password</label>
+        <input id="pwdInput" type="password" placeholder="Enter password" />
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="unlockBtn">Unlock</button>
+        <button id="setPwdBtn" class="secondary">Set/Change Password</button>
+      </div>
+      <p class="note" style="margin-top:10px">Default password is <strong>letmein</strong>. Change it using <em>Set/Change Password</em>.</p>
+    </div>
+  </div>
+
+  <script>
+    // --------- Configuration ---------
+    // Default password (change in UI after first open or edit here before upload)
+    const DEFAULT_PASSWORD = 'letmein';
+
+    // --------- Utilities & State ---------
+    const overlay = document.getElementById('overlay');
+    const nameInput = document.getElementById('nameInput');
+    const pwdInput = document.getElementById('pwdInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const setPwdBtn = document.getElementById('setPwdBtn');
+
+    const sidebarName = document.getElementById('sidebar-name');
+    const sidebarSub = document.getElementById('sidebar-sub');
+
+    const messagesEl = document.getElementById('messages');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // Password storage (in localStorage). This is client-side only.
+    function getStoredPassword(){
+      return localStorage.getItem('securechat_pwd') || DEFAULT_PASSWORD;
+    }
+    function setStoredPassword(pwd){
+      localStorage.setItem('securechat_pwd', pwd);
+    }
+
+    // Name
+    function setLocalName(name){
+      localStorage.setItem('securechat_name', name);
+    }
+    function getLocalName(){
+      return localStorage.getItem('securechat_name') || '';
+    }
+
+    // Messages stored as JSON array [{name, text, ts}]
+    function getMessages(){
+      try{ return JSON.parse(localStorage.getItem('securechat_msgs')||'[]') }catch(e){return[]}
+    }
+    function saveMessages(msgs){
+      localStorage.setItem('securechat_msgs', JSON.stringify(msgs));
+    }
+
+    // Render
+    function renderMessages(){
+      const msgs = getMessages();
+      messagesEl.innerHTML = '';
+      msgs.forEach(m=>{
+        const el = document.createElement('div');
+        el.className = 'msg' + (m.name === getLocalName() ? ' you' : '');
+        const meta = document.createElement('div'); meta.className='meta'; meta.textContent = m.name + ' • ' + new Date(m.ts).toLocaleString();
+        const body = document.createElement('div'); body.textContent = m.text;
+        el.appendChild(meta); el.appendChild(body);
+        messagesEl.appendChild(el);
+      });
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Actions
+    unlockBtn.addEventListener('click', ()=>{
+      const entered = pwdInput.value || '';
+      const wantName = (nameInput.value || '').trim();
+      if(!wantName){ alert('Please enter your name.'); return }
+      const real = getStoredPassword();
+      if(entered === real){
+        setLocalName(wantName);
+        sidebarName.textContent = wantName;
+        sidebarSub.textContent = 'Unlocked';
+        overlay.style.display = 'none';
+        renderMessages();
+      } else {
+        alert('Wrong password. Please try again.');
+      }
+    });
+
+    // Set or change password (requires current password)
+    setPwdBtn.addEventListener('click', ()=>{
+      const current = prompt('Enter current password (or cancel to abort):');
+      if(current === null) return;
+      if(current !== getStoredPassword()){ alert('Incorrect current password.'); return }
+      const next = prompt('Enter new password (min 4 characters):');
+      if(next && next.length>=4){ setStoredPassword(next); alert('Password updated.'); }
+      else alert('Password not changed.');
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+
+    function sendMessage(){
+      const text = (msgInput.value||'').trim();
+      if(!text) return;
+      const msgs = getMessages();
+      msgs.push({name:getLocalName()||'Unknown', text, ts: Date.now()});
+      saveMessages(msgs);
+      msgInput.value = '';
+      renderMessages();
+    }
+
+    logoutBtn.addEventListener('click', ()=>{
+      if(confirm('Logout will hide chat and clear saved name from this browser session. Continue?')){
+        localStorage.removeItem('securechat_name');
+        sidebarName.textContent = 'Hello';
+        sidebarSub.textContent = 'Please unlock to start chatting';
+        overlay.style.display = 'flex';
+        pwdInput.value=''; nameInput.value='';
+      }
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      if(confirm('Clear all locally saved messages?')){
+        saveMessages([]); renderMessages();
+      }
+    });
+
+    // On load, if name already saved, pre-fill and auto-unlock (still require password)
+    window.addEventListener('load', ()=>{
+      const savedName = getLocalName();
+      if(savedName) nameInput.value = savedName;
+    });
+
+    // Extra: quick deploy note in console
+    console.log('SecureChat ready. To change the built-in default password, edit DEFAULT_PASSWORD at top of the file or change it via Set/Change Password button (requires current password).');
+  </script>
+</body>
+</html>
